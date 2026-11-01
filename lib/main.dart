@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'butler.dart';
@@ -467,9 +467,9 @@ class _Store {
     }
   }
 
-  Future<void> write({required String key, required String value}) async {
+  Future<void> write({required String key, required String? value}) async {
     try {
-      await (await SharedPreferences.getInstance()).setString(key, value);
+      await (await SharedPreferences.getInstance()).setString(key, value ?? '');
     } catch (e) {
       debugPrint('Store write: $e');
     }
