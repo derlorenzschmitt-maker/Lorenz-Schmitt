@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'butler.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 const model = 'claude-sonnet-5-5';
@@ -80,7 +80,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final scroll = ScrollController();
   final shown = <MapEntry<bool, String>>[];
   final history = <Map<String, dynamic>>[];
-  final storage = const FlutterSecureStorage();
+  final storage = _Store();
   final cfg = <String, String>{};
   bool listening = false;
   bool sttOk = false;
@@ -455,3 +455,23 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
 
 
 
+
+
+class _Store {
+  Future<String?> read({required String key}) async {
+    try {
+      return (await SharedPreferences.getInstance()).getString(key);
+    } catch (e) {
+      debugPrint('Store read: $e');
+      return null;
+    }
+  }
+
+  Future<void> write({required String key, required String value}) async {
+    try {
+      await (await SharedPreferences.getInstance()).setString(key, value);
+    } catch (e) {
+      debugPrint('Store write: $e');
+    }
+  }
+}
