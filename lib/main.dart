@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'butler.dart';
@@ -191,7 +191,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   String contactDebug = '';
-  String toolDebug = 'Build 18 bereit';
 
   int _lev(String a, String b) {
     if (a == b) return 0;
@@ -213,7 +212,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     return prev[b.length];
   }
 
-  String _norm(String s) => s.toLowerCase().replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss').trim();
+  String _norm(String s) => s.toLowerCase().replaceAll('Ã¤', 'ae').replaceAll('Ã¶', 'oe').replaceAll('Ã¼', 'ue').replaceAll('ÃŸ', 'ss').trim();
 
   Future<String?> findNumber(String contact, String number) async {
     contactDebug = '';
@@ -269,11 +268,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         contactDebug += 'Fehler: $e';
       }
     }
-    if (contactDebug.isNotEmpty) {
-      try {
-        await tts.speak('Kontaktsuche. ' + contactDebug);
-      } catch (_) {}
-    }
     n = n.replaceAll(RegExp(r'[^0-9+]'), '');
     if (n.isEmpty) return null;
     if (n.startsWith('00')) n = '+${n.substring(2)}';
@@ -287,7 +281,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     init();
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) tts.speak('Charles Version achtzehn bereit.');
     });
   }
 
@@ -336,7 +329,7 @@ await tts.awaitSpeakCompletion(true); await tts.setIosAudioCategory(IosTextToSpe
 
   void openSettings() {
     final names = {
-      'key': 'Claude API-SchlÃ¼ssel',
+      'key': 'Claude API-SchlÃƒÂ¼ssel',
       'home': 'Heimatort',
       'ha_url': 'Home Assistant URL',
 'ha_url2': 'Home Assistant URL extern (Tailscale)',
@@ -460,7 +453,6 @@ if (conversation && mounted && !listening) { await Future.delayed(const Duration
           final info = toolInfo(u['name']); stageFor(u['name'], Map<String, dynamic>.from(u['input']));
           showAction(info.key, info.value);
           out = await runTool(u['name'], Map<String, dynamic>.from(u['input']));
-        if (mounted) setState(() => toolDebug = '${u['name']}: $out');
         } catch (e) {
           out = 'Fehler: $e';
         }
@@ -501,7 +493,7 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
         final secs = (a['seconds'] as num).round();
         final label = (a['label'] ?? '').toString();
         Timer(Duration(seconds: secs), () => tts.speak('Dein Timer ist abgelaufen. $label'));
-        return 'Timer gestellt auf $secs Sekunden. Er lÃ¤uft nur, solange die App offen bleibt.';
+        return 'Timer gestellt auf $secs Sekunden. Er lÃƒÂ¤uft nur, solange die App offen bleibt.';
       case 'ha_search':
       final res = await haReq('/api/states');
         final q = a['query'].toString().toLowerCase().split(' ');
@@ -556,15 +548,6 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
             child: Padding(
               padding: const EdgeInsets.only(top: 28),
               child: Text(caption, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 22, letterSpacing: 1)),
-            ),
-          ),
-        ),
-        SafeArea(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 170, left: 16, right: 16),
-              child: Text(toolDebug, maxLines: 12, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, backgroundColor: Color(0xCC000000))),
             ),
           ),
         ),
