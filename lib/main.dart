@@ -140,7 +140,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   String pref(String k) => cfg[k] ?? '';
 
   Future<void> init() async {
-    for (final k in ['key', 'home', 'ha_url', 'ha_token']) {
+    for (final k in ['key', 'home', 'ha_url', 'ha_url2', 'ha_token']) {
       cfg[k] = await storage.read(key: k) ?? '';
     }
     await tts.setLanguage('de-DE');
@@ -185,6 +185,7 @@ await tts.awaitSpeakCompletion(true); await tts.setIosAudioCategory(IosTextToSpe
       'key': 'Claude API-SchlÃ¼ssel',
       'home': 'Heimatort',
       'ha_url': 'Home Assistant URL',
+'ha_url2': 'Home Assistant URL extern (Tailscale)',
       'ha_token': 'Home Assistant Token',
     };
     final cs = {for (final k in names.keys) k: TextEditingController(text: pref(k))};
@@ -315,7 +316,8 @@ if (conversation && mounted && !listening) { await Future.delayed(const Duration
     return 'Das hat zu lange gedauert.';
   }
 
-  Future<String> runTool(String name, Map<String, dynamic> a) async {
+  Future<http.Response> haReq(String path, {String? body}) async { final h = {'Authorization': 'Bearer ${pref('ha_token')}', 'Content-Type': 'application/json'}; for (final k in ['ha_url', 'ha_url2']) { final base = pref(k).trim(); if (base.isEmpty) continue; try { final u = Uri.parse('$base$path'); final f = body == null ? http.get(u, headers: h) : http.post(u, headers: h, body: body); final ms = (k == 'ha_url' && pref('ha_url2').trim().isNotEmpty) ? 1500 : 6000; return await f.timeout(Duration(milliseconds: ms)); } catch (_) {} } throw 'Home Assistant nicht erreichbar'; }
+Future<String> runTool(String name, Map<String, dynamic> a) async {
     switch (name) {
       case 'get_weather':
         final loc = (a['location'] ?? '').toString().isEmpty ? pref('home') : a['location'];
@@ -335,8 +337,7 @@ if (conversation && mounted && !listening) { await Future.delayed(const Duration
         Timer(Duration(seconds: secs), () => tts.speak('Dein Timer ist abgelaufen. $label'));
         return 'Timer gestellt auf $secs Sekunden. Er lÃ¤uft nur, solange die App offen bleibt.';
       case 'ha_search':
-        final res = await http.get(Uri.parse('${pref('ha_url')}/api/states'),
-            headers: {'Authorization': 'Bearer ${pref('ha_token')}'});
+      final res = await haReq('/api/states');
         final q = a['query'].toString().toLowerCase().split(' ');
         final hits = (jsonDecode(res.body) as List).where((s) {
           final t = '${s['entity_id']} ${s['attributes']?['friendly_name']}'.toLowerCase();
@@ -346,9 +347,7 @@ if (conversation && mounted && !listening) { await Future.delayed(const Duration
       case 'ha_call_service':
         const ok = ['climate', 'cover', 'fan', 'light', 'media_player', 'scene', 'script', 'switch'];
         if (!ok.contains(a['domain'])) return 'Domain nicht erlaubt.';
-        final res = await http.post(Uri.parse('${pref('ha_url')}/api/services/${a['domain']}/${a['service']}'),
-            headers: {'Authorization': 'Bearer ${pref('ha_token')}', 'content-type': 'application/json'},
-            body: jsonEncode({'entity_id': a['entity_id'], ...Map<String, dynamic>.from(a['data'] ?? {})}));
+      final res = await haReq('/api/services/${a['domain']}/${a['service']}', body: jsonEncode({'entity_id': a['entity_id'], ...Map<String, dynamic>.from(a['data'] ?? {})}));
         return res.statusCode == 200 ? 'Erledigt.' : 'Fehler ${res.statusCode}';
     }
     return 'Unbekanntes Werkzeug.';
