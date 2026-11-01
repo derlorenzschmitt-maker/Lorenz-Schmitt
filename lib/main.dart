@@ -254,7 +254,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       busy = true;
     });
     scrollDown();
-    final start = history.length; history.add({'role': 'user', 'content': text});
+    final start = history.length; history.add({'role': 'user', 'content': '[Jetzt: ${DateTime.now()}] $text'});
     String answer;
     try {
       answer = await ask();
@@ -278,7 +278,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         body: jsonEncode({
           'model': model,
           'max_tokens': 1024,
-          'system': '$systemPrompt Jetzt ist ${DateTime.now()}. Heimatort des Nutzers: ${pref('home')}.',
+        'system': '$systemPrompt Heimatort des Nutzers: ${pref('home')}.',
           'tools': tools,
           'messages': history,
         }),
