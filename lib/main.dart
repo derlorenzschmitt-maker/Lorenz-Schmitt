@@ -231,8 +231,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     await tts.stop();
     setState(() => listening = true);
     await stt.listen(
-      localeId: 'de_DE',
-      onResult: (r) {
+      localeId: 'de_DE', listenFor: const Duration(seconds: 60), pauseFor: const Duration(seconds: 3), listenOptions: SpeechListenOptions(partialResults: true),
+      onResult: (r) { setState(() => ctrl.text = r.recognizedWords);
         if (r.finalResult) {
           setState(() => listening = false);
           send(r.recognizedWords);
@@ -254,12 +254,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       busy = true;
     });
     scrollDown();
-    history.add({'role': 'user', 'content': text});
+    final start = history.length; history.add({'role': 'user', 'content': text});
     String answer;
     try {
       answer = await ask();
     } catch (e) {
-      answer = 'Das hat leider nicht geklappt: $e';
+      history.removeRange(start, history.length); answer = 'Das hat leider nicht geklappt: $e';
     }
     setState(() {
       shown.add(MapEntry(false, answer));
