@@ -191,7 +191,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   String contactDebug = '';
-  String toolDebug = 'Build 16 bereit';
+  String toolDebug = 'Build 17 bereit';
 
   String _norm(String s) => s.toLowerCase().replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss').trim();
 
@@ -229,6 +229,11 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         contactDebug += 'Fehler: $e';
       }
     }
+    if (contactDebug.isNotEmpty) {
+      try {
+        await tts.speak('Kontaktsuche. ' + contactDebug);
+      } catch (_) {}
+    }
     n = n.replaceAll(RegExp(r'[^0-9+]'), '');
     if (n.isEmpty) return null;
     if (n.startsWith('00')) n = '+${n.substring(2)}';
@@ -241,6 +246,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     init();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) tts.speak('Charles Version siebzehn bereit.');
+    });
   }
 
   String pref(String k) => cfg[k] ?? '';
