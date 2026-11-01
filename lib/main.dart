@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'butler.dart';
+import 'stage.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,6 +38,16 @@ const tools = [
       'properties': {'domain': {'type': 'string'}, 'service': {'type': 'string'}, 'entity_id': {'type': 'string'}, 'data': {'type': 'object'}},
       'required': ['domain', 'service', 'entity_id']
     }
+  },
+  {
+    'name': 'whatsapp_send',
+    'description': 'Oeffnet WhatsApp mit fertigem Text fuer einen Kontakt. Lorenz tippt selbst auf Senden. Kontaktname wird in den Kontakten gesucht, alternativ direkte Nummer.',
+    'input_schema': {'type': 'object', 'properties': {'contact': {'type': 'string'}, 'number': {'type': 'string'}, 'text': {'type': 'string'}}, 'required': ['text']}
+  },
+  {
+    'name': 'phone_call',
+    'description': 'Startet einen normalen Telefonanruf an einen Kontakt oder eine Nummer. Lorenz bestaetigt am iPhone.',
+    'input_schema': {'type': 'object', 'properties': {'contact': {'type': 'string'}, 'number': {'type': 'string'}}}
   },
 ];
 
@@ -123,12 +136,79 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         return MapEntry('Ich schaue nach dem Wetter ...', Icons.cloud);
       case 'set_timer':
         return MapEntry('Ich stelle den Timer ...', Icons.timer);
-      case 'ha_search':
+      case 'whatsapp_send':
+      return MapEntry('Ich oeffne WhatsApp ...', Icons.chat);
+    case 'phone_call':
+      return MapEntry('Ich starte den Anruf ...', Icons.call);
+    case 'ha_search':
         return MapEntry('Ich sehe im Haus nach ...', Icons.home);
     }
     return MapEntry('Einen Augenblick ...', Icons.auto_awesome);
   }
   bool busy = false;
+  StageKind stageKind = StageKind.generic;
+  bool stageOn = true;
+
+  void stageFor(String name, Map<String, dynamic> a) {
+    stageOn = true;
+    switch (name) {
+      case 'get_weather':
+        stageKind = StageKind.weather;
+        break;
+      case 'set_timer':
+        stageKind = StageKind.timer;
+        break;
+      case 'ha_search':
+        stageKind = StageKind.home;
+        break;
+      case 'whatsapp_send':
+        stageKind = StageKind.whatsapp;
+        break;
+      case 'phone_call':
+        stageKind = StageKind.phone;
+        break;
+      case 'ha_call_service':
+        {
+          final d = (a['domain'] ?? '').toString();
+          final sv = (a['service'] ?? '').toString();
+          if (d == 'cover') {
+            stageKind = StageKind.blinds;
+            stageOn = !sv.contains('open');
+          } else if (d == 'light') {
+            stageKind = StageKind.light;
+            stageOn = !sv.contains('off');
+          } else if (d == 'climate') {
+            stageKind = StageKind.climate;
+            stageOn = !sv.contains('off');
+          } else {
+            stageKind = StageKind.generic;
+          }
+        }
+        break;
+      default:
+        stageKind = StageKind.generic;
+    }
+  }
+
+  Future<String?> findNumber(String contact, String number) async {
+    var n = number.trim();
+    if (n.isEmpty && contact.trim().isNotEmpty) {
+      if (!await FlutterContacts.requestPermission(readonly: true)) return null;
+      final list = await FlutterContacts.getContacts(withProperties: true);
+      final q = contact.toLowerCase().trim();
+      for (final c in list) {
+        if (c.displayName.toLowerCase().contains(q) && c.phones.isNotEmpty) {
+          n = c.phones.first.number;
+          break;
+        }
+      }
+    }
+    n = n.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (n.isEmpty) return null;
+    if (n.startsWith('00')) n = '+${n.substring(2)}';
+    if (n.startsWith('0')) n = '+49${n.substring(1)}';
+    return n;
+  }
 
   @override
   void initState() {
@@ -290,7 +370,7 @@ if (conversation && mounted && !listening) { await Future.delayed(const Duration
       if (res.statusCode != 200) throw data['error']?['message'] ?? res.statusCode;
       final content = data['content'] as List;
       if (content.any((b) => b['type'] == 'server_tool_use')) {
-        showAction('Ich recherchiere ...', Icons.search);
+        stageKind = StageKind.search; stageOn = true; showAction('Ich recherchiere ...', Icons.search);
       }
       history.add({'role': 'assistant', 'content': content});
       final stop = data['stop_reason'];
@@ -303,7 +383,7 @@ if (conversation && mounted && !listening) { await Future.delayed(const Duration
       for (final u in uses) {
         String out;
         try {
-          final info = toolInfo(u['name']);
+          final info = toolInfo(u['name']); stageFor(u['name'], Map<String, dynamic>.from(u['input']));
           showAction(info.key, info.value);
           out = await runTool(u['name'], Map<String, dynamic>.from(u['input']));
         } catch (e) {
@@ -331,7 +411,18 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
             '&current=temperature_2m,weather_code,wind_speed_10m'
             '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=$days'));
         return '${r[0]['name']}: ${w.body}';
-      case 'set_timer':
+      case 'whatsapp_send':
+    case 'phone_call':
+      {
+        final nr = await findNumber((a['contact'] ?? '').toString(), (a['number'] ?? '').toString());
+        if (nr == null) return 'Kontakt oder Nummer nicht gefunden.';
+        final isCall = name == 'phone_call';
+        final uri = isCall ? Uri(scheme: 'tel', path: nr) : Uri.parse('whatsapp://send?phone=${nr.replaceAll('+', '')}&text=${Uri.encodeComponent((a['text'] ?? '').toString())}');
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!launched) return 'Konnte die App nicht oeffnen.';
+        return isCall ? 'Anruf wird gestartet, Lorenz bestaetigt am iPhone.' : 'WhatsApp ist offen, Lorenz muss nur noch auf Senden tippen.';
+      }
+    case 'set_timer':
         final secs = (a['seconds'] as num).round();
         final label = (a['label'] ?? '').toString();
         Timer(Duration(seconds: secs), () => tts.speak('Dein Timer ist abgelaufen. $label'));
@@ -355,108 +446,76 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
 
   @override
   Widget build(BuildContext context) {
+    final acting = actionText != null;
+    final st = acting
+        ? ButlerState.acting
+        : speaking
+            ? ButlerState.speaking
+            : listening
+                ? ButlerState.listening
+                : busy
+                    ? ButlerState.thinking
+                    : ButlerState.idle;
+    final caption = acting
+        ? (actionDone ? 'Erledigt.' : actionText!)
+        : listening
+            ? 'Ich h\u00f6re zu ...'
+            : busy
+                ? 'Charles denkt nach ...'
+                : '';
+    final micColor = listening ? Colors.redAccent : const Color(0xFF4DD0E1);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Charles'),
-        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: openSettings)],
-      ),
-      body: Column(children: [
-        ButlerAvatar(
-          state: actionText != null
-              ? ButlerState.acting
-              : speaking
-                  ? ButlerState.speaking
-                  : listening
-                      ? ButlerState.listening
-                      : busy
-                          ? ButlerState.thinking
-                          : ButlerState.idle,
-        ),
-        Expanded(
-          child: ListView.builder(
-            controller: scroll,
-            padding: const EdgeInsets.all(12),
-            itemCount: shown.length + (busy ? 1 : 0),
-            itemBuilder: (_, i) {
-              if (i == shown.length) {
-                return const Padding(padding: EdgeInsets.all(8), child: Text('Charles denkt nach ...'));
-              }
-              final m = shown[i];
-              return Align(
-                alignment: m.key ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  padding: const EdgeInsets.all(12),
-                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-                  decoration: BoxDecoration(
-                    color: m.key ? Colors.cyan.shade800 : Colors.grey.shade800,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(m.value),
-                ),
-              );
-            },
+      backgroundColor: const Color(0xFF05080F),
+      body: Stack(children: [
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            child: acting
+                ? ActionStage(key: ValueKey('${stageKind.name}-$stageOn'), kind: stageKind, done: actionDone, on: stageOn)
+                : Center(key: const ValueKey('avatar'), child: Transform.scale(scale: 1.8, child: ButlerAvatar(state: st))),
           ),
         ),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: actionText == null
-              ? const SizedBox.shrink()
-              : Container(
-                  key: ValueKey(actionText),
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.cyan.shade900, borderRadius: BorderRadius.circular(16)),
-                  child: Row(children: [
-                    actionDone
-                        ? const Icon(Icons.check_circle, color: Colors.greenAccent)
-                        : TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0.9, end: pulse ? 1.1 : 0.9),
-                            duration: const Duration(milliseconds: 700),
-                            curve: Curves.easeInOut,
-                            onEnd: () => setState(() => pulse = !pulse),
-                            builder: (_, s, child) => Transform.scale(scale: s, child: child),
-                            child: Icon(actionIcon, color: Colors.amberAccent),
-                          ),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(actionDone ? 'Erledigt.' : actionText!)),
-                  ]),
-                ),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 28),
+              child: Text(caption, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 22, letterSpacing: 1)),
+            ),
+          ),
         ),
         SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: ctrl,
-                  onSubmitted: send,
-                  decoration: const InputDecoration(hintText: 'Schreib Charles etwas ...', border: OutlineInputBorder()),
+          child: Align(
+            alignment: Alignment.topRight,
+            child: IconButton(icon: const Icon(Icons.settings, color: Colors.white24), onPressed: openSettings),
+          ),
+        ),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 40),
+              child: GestureDetector(
+                onTap: toggleMic,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  width: listening ? 110 : 96,
+                  height: listening ? 110 : 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: micColor,
+                    boxShadow: [BoxShadow(color: micColor.withOpacity(0.5), blurRadius: listening ? 40 : 20, spreadRadius: listening ? 8 : 2)],
+                  ),
+                  child: Icon(listening ? Icons.stop : Icons.mic, size: 46, color: Colors.black),
                 ),
               ),
-              IconButton(icon: const Icon(Icons.send), onPressed: () => send(ctrl.text)),
-              IconButton.filled(
-                onPressed: toggleMic,
-                style: IconButton.styleFrom(backgroundColor: listening ? Colors.red : null),
-                icon: Icon(listening ? Icons.stop : Icons.mic),
-              ),
-            ]),
+            ),
           ),
         ),
       ]),
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
 
 class _Store {
   Future<String?> read({required String key}) async {
