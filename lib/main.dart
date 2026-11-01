@@ -191,7 +191,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   String contactDebug = '';
-  String toolDebug = '';
+  String toolDebug = 'Build 16 bereit';
 
   String _norm(String s) => s.toLowerCase().replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss').trim();
 
@@ -516,7 +516,7 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 170, left: 16, right: 16),
-              child: Text(toolDebug, maxLines: 8, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              child: Text(toolDebug, maxLines: 12, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, backgroundColor: Color(0xCC000000))),
             ),
           ),
         ),
