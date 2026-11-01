@@ -190,24 +190,43 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
   }
 
+  String contactDebug = '';
+
+  String _norm(String s) => s.toLowerCase().replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss').trim();
+
   Future<String?> findNumber(String contact, String number) async {
+    contactDebug = '';
     var n = number.trim();
     if (n.isEmpty && contact.trim().isNotEmpty) {
       try {
-        await FlutterContacts.permissions.request(PermissionType.read);
+        final st = await FlutterContacts.permissions.request(PermissionType.read);
+        contactDebug = 'Erlaubnis: $st. ';
         final list = await FlutterContacts.getAll(properties: ContactProperties.all);
-        final q = contact.toLowerCase().trim();
+        contactDebug += '${list.length} Kontakte gelesen. ';
+        final q = _norm(contact);
+        dynamic best;
         for (final c in list) {
           final dynamic cc = c;
-          final name = '${cc.displayName}'.toLowerCase();
+          final nm = _norm('${cc.displayName}');
           final List ph = (cc.phones ?? []) as List;
-          if (name.contains(q) && ph.isNotEmpty) {
-            final dynamic p = ph.first;
-            n = '${p.number}';
+          if (ph.isEmpty || nm.isEmpty) continue;
+          if (nm == q) {
+            best = cc;
             break;
           }
+          if (best == null && (nm.contains(q) || q.contains(nm))) best = cc;
         }
-      } catch (_) {}
+        if (best != null) {
+          final List ph = (best.phones ?? []) as List;
+          final dynamic p = ph.first;
+          n = '${p.number}';
+          contactDebug += 'Treffer: ${best.displayName}. ';
+        } else {
+          contactDebug += 'Kein Kontakt mit Nummer passt zu $contact. ';
+        }
+      } catch (e) {
+        contactDebug += 'Fehler: $e';
+      }
     }
     n = n.replaceAll(RegExp(r'[^0-9+]'), '');
     if (n.isEmpty) return null;
@@ -421,7 +440,7 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
     case 'phone_call':
       {
         final nr = await findNumber((a['contact'] ?? '').toString(), (a['number'] ?? '').toString());
-        if (nr == null) return 'Kontakt oder Nummer nicht gefunden.';
+        if (nr == null) return 'Kontakt oder Nummer nicht gefunden. ' + contactDebug;
         final isCall = name == 'phone_call';
         final uri = isCall ? Uri(scheme: 'tel', path: nr) : Uri.parse('whatsapp://send?phone=${nr.replaceAll('+', '')}&text=${Uri.encodeComponent((a['text'] ?? '').toString())}');
         final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
