@@ -169,7 +169,7 @@ await tts.awaitSpeakCompletion(true); await tts.setIosAudioCategory(IosTextToSpe
         }
       }
     } catch (_) {}
-    sttOk = await stt.initialize(onStatus: (s) { if ((s == 'done' || s == 'notListening') && listening && mounted && !busy) { setState(() => listening = false); if (ctrl.text.trim().isNotEmpty) { send(ctrl.text); } else { conversation = false; } } });
+    sttOk = await stt.initialize(onStatus: (s) { if ((s == 'done' || s == 'notListening') && listening && mounted && !busy) { setState(() => listening = false); if (ctrl.text.trim().isNotEmpty) { send(ctrl.text); } else { Future.delayed(const Duration(milliseconds: 800), () { if (conversation && mounted && !listening && !busy) toggleMic(); }); } } });
     if (pref('key').isEmpty && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) openSettings();
@@ -236,7 +236,7 @@ await tts.awaitSpeakCompletion(true); await tts.setIosAudioCategory(IosTextToSpe
       onResult: (r) { setState(() => ctrl.text = r.recognizedWords);
         if (r.finalResult) {
           setState(() => listening = false);
-          if (r.recognizedWords.trim().isEmpty) { conversation = false; } else { send(r.recognizedWords); }
+          if (r.recognizedWords.trim().isEmpty) { Future.delayed(const Duration(milliseconds: 800), () { if (conversation && mounted && !listening && !busy) toggleMic(); }); } else { send(r.recognizedWords); }
         }
       },
     );
