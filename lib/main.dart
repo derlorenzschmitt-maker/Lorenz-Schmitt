@@ -191,7 +191,27 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   String contactDebug = '';
-  String toolDebug = 'Build 17 bereit';
+  String toolDebug = 'Build 18 bereit';
+
+  int _lev(String a, String b) {
+    if (a == b) return 0;
+    if (a.isEmpty) return b.length;
+    if (b.isEmpty) return a.length;
+    var prev = List<int>.generate(b.length + 1, (i) => i);
+    for (var i = 1; i <= a.length; i++) {
+      final cur = List<int>.filled(b.length + 1, 0);
+      cur[0] = i;
+      for (var j = 1; j <= b.length; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        var m = prev[j] + 1;
+        if (cur[j - 1] + 1 < m) m = cur[j - 1] + 1;
+        if (prev[j - 1] + cost < m) m = prev[j - 1] + cost;
+        cur[j] = m;
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
 
   String _norm(String s) => s.toLowerCase().replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss').trim();
 
@@ -205,17 +225,37 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         final list = await FlutterContacts.getAll(properties: ContactProperties.all);
         contactDebug += '${list.length} Kontakte gelesen. ';
         final q = _norm(contact);
+        final qt = q.split(RegExp(r'[\s,]+')).where((s) => s.isNotEmpty).toList();
         dynamic best;
+        var bestScore = 999;
         for (final c in list) {
           final dynamic cc = c;
           final nm = _norm('${cc.displayName}');
           final List ph = (cc.phones ?? []) as List;
           if (ph.isEmpty || nm.isEmpty) continue;
-          if (nm == q) {
-            best = cc;
-            break;
+          final ct = nm.split(RegExp(r'[\s,]+')).where((s) => s.isNotEmpty).toList();
+          var score = 0;
+          var ok = true;
+          for (final t in qt) {
+            var bd = 99;
+            for (final x in ct) {
+              var d = _lev(t, x);
+              if (x.length >= 3 && t.length >= 3 && (x.startsWith(t) || t.startsWith(x))) d = 0;
+              if (d < bd) bd = d;
+            }
+            final lim = t.length >= 5 ? 2 : 1;
+            if (bd > lim) {
+              ok = false;
+              break;
+            }
+            score += bd;
           }
-          if (best == null && (nm.contains(q) || q.contains(nm))) best = cc;
+          if (!ok) continue;
+          score = score * 10 + (ct.length - qt.length).abs();
+          if (score < bestScore) {
+            best = cc;
+            bestScore = score;
+          }
         }
         if (best != null) {
           final List ph = (best.phones ?? []) as List;
@@ -247,7 +287,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     init();
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) tts.speak('Charles Version siebzehn bereit.');
+      if (mounted) tts.speak('Charles Version achtzehn bereit.');
     });
   }
 
