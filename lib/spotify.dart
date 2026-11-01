@@ -110,7 +110,7 @@ class Spotify {
   static Future<String?> _deviceId({String? wanted}) async {
     final r = await _call('GET', '/me/player/devices');
     if (r == null || r.statusCode != 200) return null;
-    final list = (jsonDecode(r.body)['devices'] as List?) ?? [];
+    final list = (jsonDecode(r!.body)['devices'] as List?) ?? [];
     if (list.isEmpty) return null;
     if (wanted != null && wanted.isNotEmpty) {
       for (final d in list) {
@@ -268,7 +268,7 @@ class Spotify {
           {
             final r = await _call('GET', '/me/player/devices');
             if (!_ok(r)) return _err(r);
-            final list = (jsonDecode(r.body)['devices'] as List?) ?? [];
+            final list = (jsonDecode(r!.body)['devices'] as List?) ?? [];
             if (list.isEmpty) return 'Keine Spotify-Geraete aktiv.';
             return list.map((d) => '${d['name']}${d['is_active'] == true ? ' (aktiv)' : ''}').join(', ');
           }
