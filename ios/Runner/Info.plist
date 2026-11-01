@@ -78,6 +78,6 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-<key>LSApplicationQueriesSchemes</key><array><string>whatsapp</string><string>tel</string></array><key>NSContactsUsageDescription</key><string>Charles sucht Telefonnummern deiner Kontakte, damit er anrufen und WhatsApp Nachrichten vorbereiten kann.</string></dict>
+<key>LSApplicationQueriesSchemes</key><array><string>whatsapp</string><string>tel</string><string>spotify</string></array><key>NSContactsUsageDescription</key><string>Charles sucht Telefonnummern deiner Kontakte, damit er anrufen und WhatsApp Nachrichten vorbereiten kann.</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>charles</string><key>CFBundleURLSchemes</key><array><string>charles</string></array></dict></array></dict>
 </plist>
 

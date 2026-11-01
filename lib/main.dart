@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'butler.dart';
 import 'stage.dart';
+import 'spotify.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -43,6 +44,11 @@ const tools = [
     'name': 'whatsapp_send',
     'description': 'Oeffnet WhatsApp mit fertigem Text fuer einen Kontakt. Lorenz tippt selbst auf Senden. Kontaktname wird in den Kontakten gesucht, alternativ direkte Nummer.',
     'input_schema': {'type': 'object', 'properties': {'contact': {'type': 'string'}, 'number': {'type': 'string'}, 'text': {'type': 'string'}}, 'required': ['text']}
+  },
+  {
+    'name': 'spotify',
+    'description': 'Steuert Spotify. action: play (query, type track/artist/album/playlist), pause, resume, next, previous, volume (percent), shuffle (mode on/off), repeat, queue (query), now_playing, devices, transfer (device) oder login.',
+    'input_schema': {'type': 'object', 'properties': {'action': {'type': 'string'}, 'query': {'type': 'string'}, 'type': {'type': 'string'}, 'percent': {'type': 'integer'}, 'mode': {'type': 'string'}, 'device': {'type': 'string'}}, 'required': ['action']}
   },
   {
     'name': 'phone_call',
@@ -136,7 +142,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         return MapEntry('Ich schaue nach dem Wetter ...', Icons.cloud);
       case 'set_timer':
         return MapEntry('Ich stelle den Timer ...', Icons.timer);
-      case 'whatsapp_send':
+      case 'spotify':
+      return MapEntry('Ich kuemmere mich um die Musik ...', Icons.music_note);
+    case 'whatsapp_send':
       return MapEntry('Ich oeffne WhatsApp ...', Icons.chat);
     case 'phone_call':
       return MapEntry('Ich starte den Anruf ...', Icons.call);
@@ -161,7 +169,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       case 'ha_search':
         stageKind = StageKind.home;
         break;
-      case 'whatsapp_send':
+      case 'spotify':
+      stageKind = StageKind.generic;
+      break;
+    case 'whatsapp_send':
         stageKind = StageKind.whatsapp;
         break;
       case 'phone_call':
@@ -478,7 +489,9 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
             '&current=temperature_2m,weather_code,wind_speed_10m'
             '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=$days'));
         return '${r[0]['name']}: ${w.body}';
-      case 'whatsapp_send':
+      case 'spotify':
+      return await Spotify.run(a);
+    case 'whatsapp_send':
     case 'phone_call':
       {
         final nr = await findNumber((a['contact'] ?? '').toString(), (a['number'] ?? '').toString());
