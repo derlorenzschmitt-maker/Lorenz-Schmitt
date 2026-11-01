@@ -191,6 +191,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   String contactDebug = '';
+  String toolDebug = '';
 
   String _norm(String s) => s.toLowerCase().replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss').trim();
 
@@ -411,6 +412,7 @@ if (conversation && mounted && !listening) { await Future.delayed(const Duration
           final info = toolInfo(u['name']); stageFor(u['name'], Map<String, dynamic>.from(u['input']));
           showAction(info.key, info.value);
           out = await runTool(u['name'], Map<String, dynamic>.from(u['input']));
+        if (mounted) setState(() => toolDebug = '${u['name']}: $out');
         } catch (e) {
           out = 'Fehler: $e';
         }
@@ -506,6 +508,15 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
             child: Padding(
               padding: const EdgeInsets.only(top: 28),
               child: Text(caption, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 22, letterSpacing: 1)),
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 170, left: 16, right: 16),
+              child: Text(toolDebug, maxLines: 8, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 12)),
             ),
           ),
         ),
