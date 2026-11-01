@@ -41,6 +41,10 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_web_auth_2: ^4.1.0
   crypto: ^3.0.3
+  pdf: ^3.11.1
+  share_plus: ^10.1.4
+  video_player: ^2.9.2
+  path_provider: ^2.1.5
   flutter_contacts: ^2.0.0
   flutter_secure_storage: ^11.2.0
 
@@ -66,6 +70,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/butler_speaking.mp4
+    - assets/butler_listening.mp4
+    - assets/butler_portrait.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'butler.dart';
 import 'stage.dart';
 import 'spotify.dart';
+import 'report.dart';
+import 'butler_video.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -288,6 +290,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
 
   @override
   void initState() {
+    Report.log('info', 'App gestartet');
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     init();
@@ -362,6 +365,7 @@ await tts.awaitSpeakCompletion(true); await tts.setIosAudioCategory(IosTextToSpe
           ]),
         ),
         actions: [
+          TextButton(onPressed: () { Report.share(); }, child: const Text('Tagesbericht')),
           TextButton(
             onPressed: () async {
               for (final k in cs.keys) {
@@ -419,7 +423,7 @@ await tts.awaitSpeakCompletion(true); await tts.setIosAudioCategory(IosTextToSpe
     try {
       answer = await ask();
     } catch (e) {
-      history.removeRange(start, history.length); answer = 'Das hat leider nicht geklappt: $e';
+      history.removeRange(start, history.length); Report.log('fehler', 'Anfrage fehlgeschlagen: $e'); answer = 'Das hat leider nicht geklappt: $e';
     }
     setState(() {
       shown.add(MapEntry(false, answer));
@@ -467,6 +471,7 @@ if (conversation && mounted && !listening) { await Future.delayed(const Duration
         } catch (e) {
           out = 'Fehler: $e';
         }
+        Report.logTool(u['name'].toString(), out.toString());
         results.add({'type': 'tool_result', 'tool_use_id': u['id'], 'content': out});
       }
       history.add({'role': 'user', 'content': results});
@@ -552,7 +557,7 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
             duration: const Duration(milliseconds: 350),
             child: acting
                 ? ActionStage(key: ValueKey('${stageKind.name}-$stageOn'), kind: stageKind, done: actionDone, on: stageOn)
-                : Center(key: const ValueKey('avatar'), child: Transform.scale(scale: 1.8, child: ButlerAvatar(state: st))),
+                : Center(key: const ValueKey('avatar'), child: Transform.scale(scale: 1.8, child: ButlerVideoAvatar(state: st))),
           ),
         ),
         SafeArea(
