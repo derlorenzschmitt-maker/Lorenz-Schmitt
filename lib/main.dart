@@ -82,7 +82,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final history = <Map<String, dynamic>>[];
   final storage = _Store();
   final cfg = <String, String>{};
-  bool listening = false;
+  bool listening = false; bool conversation = false;
   bool sttOk = false;
   bool pulse = true;
   bool speaking = false;
@@ -158,6 +158,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       if (mounted) setState(() => speaking = false);
     });
     await tts.setPitch(0.8);
+await tts.awaitSpeakCompletion(true); await tts.setIosAudioCategory(IosTextToSpeechAudioCategory.playAndRecord, [IosTextToSpeechAudioCategoryOptions.defaultToSpeaker, IosTextToSpeechAudioCategoryOptions.allowBluetooth, IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP, IosTextToSpeechAudioCategoryOptions.mixWithOthers]);
     try {
       final voices = (await tts.getVoices) as List;
       for (final n in ['Markus', 'Yannick', 'Martin']) {
@@ -168,7 +169,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         }
       }
     } catch (_) {}
-    sttOk = await stt.initialize();
+    sttOk = await stt.initialize(onStatus: (s) { if ((s == 'done' || s == 'notListening') && listening && mounted && !busy) { setState(() => listening = false); if (ctrl.text.trim().isNotEmpty) { send(ctrl.text); } else { conversation = false; } } });
     if (pref('key').isEmpty && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) openSettings();
@@ -224,18 +225,18 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       return;
     }
     if (listening) {
-      await stt.stop();
+      conversation = false; await stt.stop();
       setState(() => listening = false);
       return;
     }
-    await tts.stop();
+    conversation = true; await stt.stop(); await tts.stop();
     setState(() => listening = true);
     await stt.listen(
       localeId: 'de_DE', listenFor: const Duration(seconds: 60), pauseFor: const Duration(seconds: 3), listenOptions: SpeechListenOptions(partialResults: true),
       onResult: (r) { setState(() => ctrl.text = r.recognizedWords);
         if (r.finalResult) {
           setState(() => listening = false);
-          send(r.recognizedWords);
+          if (r.recognizedWords.trim().isEmpty) { conversation = false; } else { send(r.recognizedWords); }
         }
       },
     );
@@ -268,6 +269,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     scrollDown();
     if (actionText != null) finishAction();
     await tts.speak(answer);
+if (conversation && mounted && !listening) { await Future.delayed(const Duration(milliseconds: 1200)); if (conversation && mounted && !listening && !busy) toggleMic(); }
   }
 
   Future<String> ask() async {
