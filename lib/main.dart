@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'butler.dart';
@@ -212,7 +212,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     return prev[b.length];
   }
 
-  String _norm(String s) => s.toLowerCase().replaceAll('Ã¤', 'ae').replaceAll('Ã¶', 'oe').replaceAll('Ã¼', 'ue').replaceAll('ÃŸ', 'ss').trim();
+  String _norm(String s) => s.toLowerCase().replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss').trim();
 
   Future<String?> findNumber(String contact, String number) async {
     contactDebug = '';
@@ -329,7 +329,7 @@ await tts.awaitSpeakCompletion(true); await tts.setIosAudioCategory(IosTextToSpe
 
   void openSettings() {
     final names = {
-      'key': 'Claude API-SchlÃƒÂ¼ssel',
+      'key': 'Claude API-SchlÃ¼ssel',
       'home': 'Heimatort',
       'ha_url': 'Home Assistant URL',
 'ha_url2': 'Home Assistant URL extern (Tailscale)',
@@ -493,7 +493,7 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
         final secs = (a['seconds'] as num).round();
         final label = (a['label'] ?? '').toString();
         Timer(Duration(seconds: secs), () => tts.speak('Dein Timer ist abgelaufen. $label'));
-        return 'Timer gestellt auf $secs Sekunden. Er lÃƒÂ¤uft nur, solange die App offen bleibt.';
+        return 'Timer gestellt auf $secs Sekunden. Er lÃ¤uft nur, solange die App offen bleibt.';
       case 'ha_search':
       final res = await haReq('/api/states');
         final q = a['query'].toString().toLowerCase().split(' ');
