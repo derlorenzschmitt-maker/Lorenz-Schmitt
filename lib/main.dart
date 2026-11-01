@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'butler.dart';
 import 'stage.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -191,6 +192,23 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
 
   Future<String?> findNumber(String contact, String number) async {
     var n = number.trim();
+    if (n.isEmpty && contact.trim().isNotEmpty) {
+      try {
+        await FlutterContacts.permissions.request(PermissionType.read);
+        final list = await FlutterContacts.getAll(properties: ContactProperties.all);
+        final q = contact.toLowerCase().trim();
+        for (final c in list) {
+          final dynamic cc = c;
+          final name = '${cc.displayName}'.toLowerCase();
+          final List ph = (cc.phones ?? []) as List;
+          if (name.contains(q) && ph.isNotEmpty) {
+            final dynamic p = ph.first;
+            n = '${p.number}';
+            break;
+          }
+        }
+      } catch (_) {}
+    }
     n = n.replaceAll(RegExp(r'[^0-9+]'), '');
     if (n.isEmpty) return null;
     if (n.startsWith('00')) n = '+${n.substring(2)}';
