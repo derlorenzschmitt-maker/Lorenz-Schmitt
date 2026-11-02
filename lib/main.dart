@@ -557,7 +557,7 @@ Future<String> runTool(String name, Map<String, dynamic> a) async {
             duration: const Duration(milliseconds: 350),
             child: acting
                 ? ActionStage(key: ValueKey('${stageKind.name}-$stageOn'), kind: stageKind, done: actionDone, on: stageOn)
-                : Center(key: const ValueKey('avatar'), child: Transform.scale(scale: 1.8, child: ButlerVideoAvatar(state: st))),
+                : Center(key: const ValueKey('avatar'), child: ButlerVideoAvatar(state: st)),
           ),
         ),
         SafeArea(

@@ -13,7 +13,7 @@ class ButlerVideoAvatar extends StatefulWidget {
 
 class _ButlerVideoAvatarState extends State<ButlerVideoAvatar> {
   // Zoom des Zuhoer-Videos (Hochformat), Fixpunkt als Anteil im Bild.
-  static const double listenScale = 1.8;
+  static const double listenScale = 1.3;
   static const FractionalOffset listenAnchor = FractionalOffset(0.5, 0.2);
 
   VideoPlayerController? _speak;
