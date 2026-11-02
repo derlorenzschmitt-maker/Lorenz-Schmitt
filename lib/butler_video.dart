@@ -32,6 +32,7 @@ class _ButlerVideoAvatarState extends State<ButlerVideoAvatar> {
     await c.initialize();
     await c.setLooping(true);
     await c.setVolume(0);
+    await c.setPlaybackSpeed(0.6);
     return c;
   }
 
@@ -116,7 +117,7 @@ class _ButlerVideoAvatarState extends State<ButlerVideoAvatar> {
       inner = Stack(fit: StackFit.expand, children: [
         AnimatedOpacity(
           opacity: speaking ? 0 : 1,
-          duration: const Duration(milliseconds: 350),
+          duration: const Duration(milliseconds: 700),
           child: Transform.scale(
             scale: listenScale,
             alignment: listenAnchor,
@@ -125,7 +126,7 @@ class _ButlerVideoAvatarState extends State<ButlerVideoAvatar> {
         ),
         AnimatedOpacity(
           opacity: speaking ? 1 : 0,
-          duration: const Duration(milliseconds: 350),
+          duration: const Duration(milliseconds: 700),
           child: _cover(s),
         ),
         // dunkler Verlauf unten als zusaetzliche Maske
