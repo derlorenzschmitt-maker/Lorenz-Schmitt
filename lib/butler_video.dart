@@ -69,17 +69,9 @@ class _ButlerVideoAvatarState extends State<ButlerVideoAvatar> {
     final s = _speak;
     final l = _listen;
     if (s == null || l == null) return;
-    if (widget.state == ButlerState.speaking) {
-      l.pause();
-      s.play();
-    } else if (widget.state == ButlerState.idle) {
-      s.pause();
-      l.pause();
-      l.seekTo(Duration.zero);
-    } else {
-      s.pause();
-      l.play();
-    }
+    // Beide Videos laufen dauerhaft durch, nur die Deckkraft wechselt weich.
+    if (!s.value.isPlaying) s.play();
+    if (!l.value.isPlaying) l.play();
   }
 
   @override
@@ -117,7 +109,8 @@ class _ButlerVideoAvatarState extends State<ButlerVideoAvatar> {
       inner = Stack(fit: StackFit.expand, children: [
         AnimatedOpacity(
           opacity: speaking ? 0 : 1,
-          duration: const Duration(milliseconds: 700),
+          duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
           child: Transform.scale(
             scale: listenScale,
             alignment: listenAnchor,
@@ -126,7 +119,8 @@ class _ButlerVideoAvatarState extends State<ButlerVideoAvatar> {
         ),
         AnimatedOpacity(
           opacity: speaking ? 1 : 0,
-          duration: const Duration(milliseconds: 700),
+          duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
           child: _cover(s),
         ),
         // dunkler Verlauf unten als zusaetzliche Maske
